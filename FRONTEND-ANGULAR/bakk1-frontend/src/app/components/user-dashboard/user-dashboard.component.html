@@ -1,0 +1,35 @@
+<div class="container">
+  <div class="headerbar">
+    <span>Hello {{ this.user.username }}</span>
+  </div>
+  <div class="boom">
+    <h1>Hello {{ user.username }}</h1>
+    <h2>you have successfully logged in.</h2>
+    <div class="btn-toolbar">
+      <button
+        id="log-out-button"
+        mat-raised-button
+        color="black"
+        (click)="logout()"
+      >
+        Log out
+      </button>
+      <button
+        id="delete-profile-button"
+        (click)="deleteProfile()"
+        mat-raised-button
+        color="black"
+      >
+        Delete account
+      </button>
+      <button
+        id="change-profile-button"
+        (click)="changeProfile()"
+        mat-raised-button
+        color="black"
+      >
+        Change profile
+      </button>
+    </div>
+  </div>
+</div>

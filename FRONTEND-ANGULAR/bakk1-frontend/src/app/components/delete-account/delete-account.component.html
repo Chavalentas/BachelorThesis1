@@ -1,0 +1,48 @@
+<div class="headerbar">
+  <span>Hello {{ user.username }}</span>
+</div>
+<div class="formcontainer">
+  <div class="formbody">
+    <form style="width: 100%;" [formGroup]="myForm">
+      <div class="header">Delete account</div>
+      <div>
+        <mat-form-field style="width: 100%;">
+          <input
+            type="password"
+            formControlName="password"
+            matInput
+            placeholder="Enter your password to start deletion"
+            id="pass"
+          />
+        </mat-form-field>
+        <span *ngIf="isValid('password')">Password is a mandatory field</span>
+      </div>
+      <div style="margin-top: 20px;">
+        <button
+          mat-raised-button
+          color="black"
+          class="form-btn"
+          (click)="deleteAccount()"
+        >
+          Submit
+        </button>
+      </div>
+      <div style="text-align: center;">
+        {{ successMessage }}
+      </div>
+    </form>
+  </div>
+
+  <div>
+    <div style="width: 290px; padding: 20px;">
+      <button
+        mat-raised-button
+        color="primary"
+        class="form-btn-hollow"
+        (click)="moveToHome()"
+      >
+        Home
+      </button>
+    </div>
+  </div>
+</div>
