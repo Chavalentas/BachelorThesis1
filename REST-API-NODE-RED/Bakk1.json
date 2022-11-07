@@ -1,0 +1,1602 @@
+[
+    {
+        "id": "a74f5effe243781e",
+        "type": "tab",
+        "label": "Bakk1_REST_API_Flow",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "379e5a6b03cef08f",
+        "type": "http in",
+        "z": "a74f5effe243781e",
+        "name": "",
+        "url": "api/users/register",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 120,
+        "y": 2080,
+        "wires": [
+            [
+                "3780360f2fb8e935"
+            ]
+        ]
+    },
+    {
+        "id": "3780360f2fb8e935",
+        "type": "bcrypt",
+        "z": "a74f5effe243781e",
+        "name": "",
+        "action": "encrypt",
+        "field": "payload.password",
+        "hash": "payload",
+        "target": "hashedPassword",
+        "assignment": "assign",
+        "match": "match",
+        "outputs": 1,
+        "rounds": 10,
+        "x": 310,
+        "y": 2080,
+        "wires": [
+            [
+                "31d7ec6993161d68"
+            ]
+        ]
+    },
+    {
+        "id": "31d7ec6993161d68",
+        "type": "function",
+        "z": "a74f5effe243781e",
+        "name": "CreateUserObject",
+        "func": "// Data for the user to register.\nvar username = msg.payload.username;\nvar email = msg.payload.email;\nvar password = msg.hashedPassword;\nvar creationdt = new Date();\n\n// Create the user to register.\nvar userToRegister = {\n    username : username,\n    email : email,\n    password : password,\n    creationdt : creationdt\n};\n\n\n// Store the object in a separate property.\nmsg.userToRegister = userToRegister;\n\n// Store the user in the query parameters.\nmsg.queryParameters = userToRegister;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 2080,
+        "wires": [
+            [
+                "231f7ce0969b51ef"
+            ]
+        ]
+    },
+    {
+        "id": "231f7ce0969b51ef",
+        "type": "postgresql",
+        "z": "a74f5effe243781e",
+        "name": "FindExistingUsers",
+        "query": "select * from users where username = $username or email = $email;",
+        "postgreSQLConfig": "2f8cbd60eac83ae4",
+        "split": false,
+        "rowsPerMsg": 1,
+        "outputs": 1,
+        "x": 670,
+        "y": 2080,
+        "wires": [
+            [
+                "d8614d1447a6f73f"
+            ]
+        ]
+    },
+    {
+        "id": "d8614d1447a6f73f",
+        "type": "switch",
+        "z": "a74f5effe243781e",
+        "name": "OtherExistingUsers",
+        "property": "payload.length",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "gt",
+                "v": "0",
+                "vt": "num"
+            },
+            {
+                "t": "else"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 2,
+        "x": 870,
+        "y": 2080,
+        "wires": [
+            [
+                "e1b4339d194bb21b"
+            ],
+            [
+                "61e2f793ad3f5964"
+            ]
+        ]
+    },
+    {
+        "id": "e1b4339d194bb21b",
+        "type": "function",
+        "z": "a74f5effe243781e",
+        "name": "CreateUserExistsError",
+        "func": "// Store the error message indicating the existence of the username\n// in the payload property.\nmsg.payload = {\"error\" : \"The given username \\'\"+msg.userToRegister.username+\"\\' or email \\'\"+msg.userToRegister.email+\"\\' already exists!\"};\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1100,
+        "y": 2060,
+        "wires": [
+            [
+                "ee15a46de893667f",
+                "06a9d3a298a8f0ea"
+            ]
+        ]
+    },
+    {
+        "id": "06a9d3a298a8f0ea",
+        "type": "http response",
+        "z": "a74f5effe243781e",
+        "name": "",
+        "statusCode": "401",
+        "headers": {},
+        "x": 1300,
+        "y": 2060,
+        "wires": []
+    },
+    {
+        "id": "ee15a46de893667f",
+        "type": "debug",
+        "z": "a74f5effe243781e",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1310,
+        "y": 2020,
+        "wires": []
+    },
+    {
+        "id": "61e2f793ad3f5964",
+        "type": "postgresql",
+        "z": "a74f5effe243781e",
+        "name": "InsertToDatabase",
+        "query": "insert into users (username, password, email, creationdt) values ($username, $password, $email, $creationdt);",
+        "postgreSQLConfig": "2f8cbd60eac83ae4",
+        "split": false,
+        "rowsPerMsg": 1,
+        "outputs": 1,
+        "x": 1090,
+        "y": 2100,
+        "wires": [
+            [
+                "f2b4b7f9e5ea8933"
+            ]
+        ]
+    },
+    {
+        "id": "f2b4b7f9e5ea8933",
+        "type": "function",
+        "z": "a74f5effe243781e",
+        "name": "CreateSuccessMessage",
+        "func": "// Create success message and send the registered user as the payload.\nmsg.success = \"The user was successfully created!\";\nmsg.payload = msg.userToRegister;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1310,
+        "y": 2100,
+        "wires": [
+            [
+                "93ffb8ef02852df8",
+                "50ec6fefa7b5aee5"
+            ]
+        ]
+    },
+    {
+        "id": "93ffb8ef02852df8",
+        "type": "debug",
+        "z": "a74f5effe243781e",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "success",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1530,
+        "y": 2080,
+        "wires": []
+    },
+    {
+        "id": "50ec6fefa7b5aee5",
+        "type": "http response",
+        "z": "a74f5effe243781e",
+        "name": "",
+        "statusCode": "201",
+        "headers": {},
+        "x": 1520,
+        "y": 2120,
+        "wires": []
+    },
+    {
+        "id": "45fd2d0ebe48e259",
+        "type": "http in",
+        "z": "a74f5effe243781e",
+        "name": "",
+        "url": "/api/users/login",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 100,
+        "y": 2300,
+        "wires": [
+            [
+                "cf7bcf1df6bc280b"
+            ]
+        ]
+    },
+    {
+        "id": "cf7bcf1df6bc280b",
+        "type": "function",
+        "z": "a74f5effe243781e",
+        "name": "CreateLoginData",
+        "func": "// Data for the user to log in.\nvar username = msg.payload.username;\nvar password = msg.payload.password;\nvar loginData = {\n    username : username,\n    password : password\n};\n\n// Store the login data in the query parameters.\nmsg.loginData = loginData;\nmsg.queryParameters = loginData;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 310,
+        "y": 2300,
+        "wires": [
+            [
+                "7c0623bd069acc75"
+            ]
+        ]
+    },
+    {
+        "id": "7c0623bd069acc75",
+        "type": "postgresql",
+        "z": "a74f5effe243781e",
+        "name": "FindUserByUsername",
+        "query": "select * from users where username = $username;",
+        "postgreSQLConfig": "2f8cbd60eac83ae4",
+        "split": false,
+        "rowsPerMsg": 1,
+        "outputs": 1,
+        "x": 520,
+        "y": 2300,
+        "wires": [
+            [
+                "c4b239cfaa2eab21"
+            ]
+        ]
+    },
+    {
+        "id": "c4b239cfaa2eab21",
+        "type": "switch",
+        "z": "a74f5effe243781e",
+        "name": "OneUserFound",
+        "property": "payload.length",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "1",
+                "vt": "num"
+            },
+            {
+                "t": "eq",
+                "v": "0",
+                "vt": "num"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 2,
+        "x": 720,
+        "y": 2300,
+        "wires": [
+            [
+                "fba67ce7e443e73d"
+            ],
+            [
+                "d8652f3e88aa6842"
+            ]
+        ]
+    },
+    {
+        "id": "fba67ce7e443e73d",
+        "type": "function",
+        "z": "a74f5effe243781e",
+        "name": "StorePasswordHash",
+        "func": "// Store the password hash in separate property.\nmsg.hash = msg.payload[0].password;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 940,
+        "y": 2260,
+        "wires": [
+            [
+                "da7581b98e4ec523"
+            ]
+        ]
+    },
+    {
+        "id": "d8652f3e88aa6842",
+        "type": "function",
+        "z": "a74f5effe243781e",
+        "name": "CreateUsernameDoesNotExistError",
+        "func": "// Store the error message indicating the non-existence of the username\n// in the payload property.\nmsg.payload = {\"error\" : \"The username \\'\"+msg.loginData.username+\"\\' does not exist!\"};\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 980,
+        "y": 2320,
+        "wires": [
+            [
+                "66b88597ec9f0252",
+                "44681144afb895be"
+            ]
+        ]
+    },
+    {
+        "id": "66b88597ec9f0252",
+        "type": "debug",
+        "z": "a74f5effe243781e",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1230,
+        "y": 2320,
+        "wires": []
+    },
+    {
+        "id": "44681144afb895be",
+        "type": "http response",
+        "z": "a74f5effe243781e",
+        "name": "",
+        "statusCode": "401",
+        "headers": {},
+        "x": 1220,
+        "y": 2360,
+        "wires": []
+    },
+    {
+        "id": "da7581b98e4ec523",
+        "type": "bcrypt",
+        "z": "a74f5effe243781e",
+        "name": "",
+        "action": "verify",
+        "field": "loginData.password",
+        "hash": "hash",
+        "target": "payload",
+        "assignment": "replace",
+        "match": "match",
+        "outputs": 1,
+        "rounds": 10,
+        "x": 1120,
+        "y": 2260,
+        "wires": [
+            [
+                "24e1de274ce2056a"
+            ]
+        ]
+    },
+    {
+        "id": "24e1de274ce2056a",
+        "type": "switch",
+        "z": "a74f5effe243781e",
+        "name": "PasswordValid",
+        "property": "match",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "true"
+            },
+            {
+                "t": "else"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 2,
+        "x": 1280,
+        "y": 2260,
+        "wires": [
+            [
+                "160b724cf1c6c3ab"
+            ],
+            [
+                "ccc67bc91f6c0d59"
+            ]
+        ]
+    },
+    {
+        "id": "160b724cf1c6c3ab",
+        "type": "function",
+        "z": "a74f5effe243781e",
+        "name": "CreateToken",
+        "func": "// Return a token with the ID of the user.\nvar jwt = global.get('jsonwebtoken');\nvar token = jwt.sign({id:msg.payload[0].id},'secret', {expiresIn : '3h'});\nmsg.payload = \"\\\"\"+token+\"\\\"\";\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1470,
+        "y": 2220,
+        "wires": [
+            [
+                "55204216aaf84a91",
+                "a57a00def1af3824"
+            ]
+        ]
+    },
+    {
+        "id": "ccc67bc91f6c0d59",
+        "type": "function",
+        "z": "a74f5effe243781e",
+        "name": "CreateWrongPasswordError",
+        "func": "// Store the error message indicating the wrong password\n// in the payload property.\nmsg.payload = {\"error\" : \"The password was wrong!\"};\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1520,
+        "y": 2300,
+        "wires": [
+            [
+                "cae836df4b85fd59",
+                "496023fef6570821"
+            ]
+        ]
+    },
+    {
+        "id": "cae836df4b85fd59",
+        "type": "debug",
+        "z": "a74f5effe243781e",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1750,
+        "y": 2300,
+        "wires": []
+    },
+    {
+        "id": "496023fef6570821",
+        "type": "http response",
+        "z": "a74f5effe243781e",
+        "name": "",
+        "statusCode": "400",
+        "headers": {},
+        "x": 1740,
+        "y": 2340,
+        "wires": []
+    },
+    {
+        "id": "a57a00def1af3824",
+        "type": "http response",
+        "z": "a74f5effe243781e",
+        "name": "",
+        "statusCode": "200",
+        "headers": {},
+        "x": 1640,
+        "y": 2260,
+        "wires": []
+    },
+    {
+        "id": "55204216aaf84a91",
+        "type": "debug",
+        "z": "a74f5effe243781e",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1650,
+        "y": 2220,
+        "wires": []
+    },
+    {
+        "id": "49053ac55f6101b3",
+        "type": "http in",
+        "z": "a74f5effe243781e",
+        "name": "",
+        "url": "/api/users/userid",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 100,
+        "y": 2500,
+        "wires": [
+            [
+                "986e836953679a51"
+            ]
+        ]
+    },
+    {
+        "id": "986e836953679a51",
+        "type": "function",
+        "z": "a74f5effe243781e",
+        "name": "VerifyToken",
+        "func": "// Verify the token of the user.\n// Store the decoded token.\nvar token = msg.payload.token;\nvar jwt = global.get('jsonwebtoken');\nmsg.tokenValid = false;\n jwt.verify(token, 'secret', function(err, tokendata){\n        if(err){\n            msg.tokenValid = false;\n         }\n          if(tokendata){\n            msg.tokenValid = true;\n            msg.decodedToken = tokendata;\n          }\n    })\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 290,
+        "y": 2500,
+        "wires": [
+            [
+                "c7a9e1382af33018"
+            ]
+        ]
+    },
+    {
+        "id": "c7a9e1382af33018",
+        "type": "switch",
+        "z": "a74f5effe243781e",
+        "name": "TokenValid",
+        "property": "tokenValid",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "true"
+            },
+            {
+                "t": "else"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 2,
+        "x": 450,
+        "y": 2500,
+        "wires": [
+            [
+                "0dd077a1ac13b135"
+            ],
+            [
+                "6145e9ba41a4c35a"
+            ]
+        ]
+    },
+    {
+        "id": "0dd077a1ac13b135",
+        "type": "function",
+        "z": "a74f5effe243781e",
+        "name": "ExtractUserId",
+        "func": "// Store the user ID of the decoded token in the payload property.\nmsg.payload = msg.decodedToken.id;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 640,
+        "y": 2460,
+        "wires": [
+            [
+                "62c30a8102ca8274",
+                "be01059abbc97470"
+            ]
+        ]
+    },
+    {
+        "id": "6145e9ba41a4c35a",
+        "type": "function",
+        "z": "a74f5effe243781e",
+        "name": "CreateInvalidTokenError",
+        "func": "// Store the error message indicating the invalid token\n// in the payload property.\nmsg.payload = {\"error\" : \"Unauthorized request!\"};\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 670,
+        "y": 2540,
+        "wires": [
+            [
+                "5355d3c39df32fe7",
+                "de892eeeba6623c2"
+            ]
+        ]
+    },
+    {
+        "id": "62c30a8102ca8274",
+        "type": "http response",
+        "z": "a74f5effe243781e",
+        "name": "",
+        "statusCode": "200",
+        "headers": {},
+        "x": 820,
+        "y": 2460,
+        "wires": []
+    },
+    {
+        "id": "be01059abbc97470",
+        "type": "debug",
+        "z": "a74f5effe243781e",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 830,
+        "y": 2500,
+        "wires": []
+    },
+    {
+        "id": "5355d3c39df32fe7",
+        "type": "debug",
+        "z": "a74f5effe243781e",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 890,
+        "y": 2540,
+        "wires": []
+    },
+    {
+        "id": "de892eeeba6623c2",
+        "type": "http response",
+        "z": "a74f5effe243781e",
+        "name": "",
+        "statusCode": "400",
+        "headers": {},
+        "x": 880,
+        "y": 2580,
+        "wires": []
+    },
+    {
+        "id": "6d8833cadffe699e",
+        "type": "http in",
+        "z": "a74f5effe243781e",
+        "name": "",
+        "url": "/api/users/get-user",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 100,
+        "y": 2700,
+        "wires": [
+            [
+                "a29dd56238f81d0d"
+            ]
+        ]
+    },
+    {
+        "id": "a29dd56238f81d0d",
+        "type": "function",
+        "z": "a74f5effe243781e",
+        "name": "CreateQueryParameters",
+        "func": "// Store the ID and set the query parameters.\nmsg.id = msg.payload.id;\nmsg.queryParameters = msg.payload;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 350,
+        "y": 2700,
+        "wires": [
+            [
+                "5aebcc8e4938d326"
+            ]
+        ]
+    },
+    {
+        "id": "5aebcc8e4938d326",
+        "type": "postgresql",
+        "z": "a74f5effe243781e",
+        "name": "FindUserById",
+        "query": "select * from users where id = $id;",
+        "postgreSQLConfig": "2f8cbd60eac83ae4",
+        "split": false,
+        "rowsPerMsg": 1,
+        "outputs": 1,
+        "x": 560,
+        "y": 2700,
+        "wires": [
+            [
+                "fd8c37307c521b37"
+            ]
+        ]
+    },
+    {
+        "id": "fd8c37307c521b37",
+        "type": "switch",
+        "z": "a74f5effe243781e",
+        "name": "OneUserFound",
+        "property": "payload.length",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "1",
+                "vt": "num"
+            },
+            {
+                "t": "eq",
+                "v": "0",
+                "vt": "num"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 2,
+        "x": 740,
+        "y": 2700,
+        "wires": [
+            [
+                "1c3e9c1e32240c50"
+            ],
+            [
+                "345fdc93da72ed36"
+            ]
+        ]
+    },
+    {
+        "id": "1c3e9c1e32240c50",
+        "type": "function",
+        "z": "a74f5effe243781e",
+        "name": "ExtractUser",
+        "func": "// Extract the user to the payload property.\nvar user = msg.payload[0];\nmsg.payload = user;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 950,
+        "y": 2660,
+        "wires": [
+            [
+                "710d238fad208d1c",
+                "4efbfa684c5c9f89"
+            ]
+        ]
+    },
+    {
+        "id": "345fdc93da72ed36",
+        "type": "function",
+        "z": "a74f5effe243781e",
+        "name": "CreateUserNotFoundError",
+        "func": "// Store the error message indicating the non-existence of the user\n// in the payload property.\nmsg.payload = {\"error\" : \"The user with the ID \\'\"+msg.id+\"\\' could not be found!\"};\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1000,
+        "y": 2740,
+        "wires": [
+            [
+                "dd8dfe4986e5bbe7",
+                "c0fe007e3cddb877"
+            ]
+        ]
+    },
+    {
+        "id": "710d238fad208d1c",
+        "type": "http response",
+        "z": "a74f5effe243781e",
+        "name": "",
+        "statusCode": "200",
+        "headers": {},
+        "x": 1140,
+        "y": 2660,
+        "wires": []
+    },
+    {
+        "id": "4efbfa684c5c9f89",
+        "type": "debug",
+        "z": "a74f5effe243781e",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1150,
+        "y": 2700,
+        "wires": []
+    },
+    {
+        "id": "dd8dfe4986e5bbe7",
+        "type": "debug",
+        "z": "a74f5effe243781e",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1230,
+        "y": 2740,
+        "wires": []
+    },
+    {
+        "id": "c0fe007e3cddb877",
+        "type": "http response",
+        "z": "a74f5effe243781e",
+        "name": "",
+        "statusCode": "400",
+        "headers": {},
+        "x": 1220,
+        "y": 2780,
+        "wires": []
+    },
+    {
+        "id": "b8714e6a77431b60",
+        "type": "http in",
+        "z": "a74f5effe243781e",
+        "name": "",
+        "url": "/api/users/edit",
+        "method": "put",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 90,
+        "y": 3060,
+        "wires": [
+            [
+                "851e27df963a9ebb"
+            ]
+        ]
+    },
+    {
+        "id": "851e27df963a9ebb",
+        "type": "function",
+        "z": "a74f5effe243781e",
+        "name": "CreateQueryParameters",
+        "func": "// Store the update data in the payload property and\n// set the query parameters.\nmsg.updateData = msg.payload;\nmsg.queryParameters = msg.payload;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 310,
+        "y": 3060,
+        "wires": [
+            [
+                "6ac89d0dbca3c623"
+            ]
+        ]
+    },
+    {
+        "id": "6ac89d0dbca3c623",
+        "type": "postgresql",
+        "z": "a74f5effe243781e",
+        "name": "FindUserById",
+        "query": "select * from users where id = $id;",
+        "postgreSQLConfig": "2f8cbd60eac83ae4",
+        "split": false,
+        "rowsPerMsg": 1,
+        "outputs": 1,
+        "x": 520,
+        "y": 3060,
+        "wires": [
+            [
+                "3350b79da9cd8494"
+            ]
+        ]
+    },
+    {
+        "id": "3350b79da9cd8494",
+        "type": "switch",
+        "z": "a74f5effe243781e",
+        "name": "OneUserFound",
+        "property": "payload.length",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "1",
+                "vt": "num"
+            },
+            {
+                "t": "eq",
+                "v": "0",
+                "vt": "num"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 2,
+        "x": 700,
+        "y": 3060,
+        "wires": [
+            [
+                "e3823d76cd89afbe"
+            ],
+            [
+                "d44e50f686a29931"
+            ]
+        ]
+    },
+    {
+        "id": "e3823d76cd89afbe",
+        "type": "function",
+        "z": "a74f5effe243781e",
+        "name": "StoreFoundUser",
+        "func": "// Store the found user in a separate property.\nmsg.userToUpdate = msg.payload[0];\nmsg.queryParameters = {\n    id : msg.payload[0].id,\n    username : msg.updateData.username,\n    email : msg.updateData.email\n};\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 920,
+        "y": 3020,
+        "wires": [
+            [
+                "b71d22f875e6282e"
+            ]
+        ]
+    },
+    {
+        "id": "d44e50f686a29931",
+        "type": "function",
+        "z": "a74f5effe243781e",
+        "name": "CreateUserNotFoundError",
+        "func": "// Store the error message indicating the non-existence of the user\n// in the payload property.\nmsg.payload = {\"error\" : \"The user with the ID \\'\"+msg.updateData.id+\"\\' could not be found!\"};\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 960,
+        "y": 3100,
+        "wires": [
+            [
+                "22d8b5ad86a8e304",
+                "3bbf4af64fc64db0"
+            ]
+        ]
+    },
+    {
+        "id": "22d8b5ad86a8e304",
+        "type": "debug",
+        "z": "a74f5effe243781e",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1210,
+        "y": 3100,
+        "wires": []
+    },
+    {
+        "id": "3bbf4af64fc64db0",
+        "type": "http response",
+        "z": "a74f5effe243781e",
+        "name": "",
+        "statusCode": "400",
+        "headers": {},
+        "x": 1200,
+        "y": 3140,
+        "wires": []
+    },
+    {
+        "id": "b71d22f875e6282e",
+        "type": "postgresql",
+        "z": "a74f5effe243781e",
+        "name": "FindOtherExistingUsers",
+        "query": "select * from users\nwhere id != $id\nand (username = $username or email = $email);",
+        "postgreSQLConfig": "2f8cbd60eac83ae4",
+        "split": false,
+        "rowsPerMsg": 1,
+        "outputs": 1,
+        "x": 1130,
+        "y": 3020,
+        "wires": [
+            [
+                "0a2787aa6c3bbf91"
+            ]
+        ]
+    },
+    {
+        "id": "0a2787aa6c3bbf91",
+        "type": "switch",
+        "z": "a74f5effe243781e",
+        "name": "NoOtherExistingUsers",
+        "property": "payload.length",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "0",
+                "vt": "num"
+            },
+            {
+                "t": "gt",
+                "v": "0",
+                "vt": "num"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 2,
+        "x": 1360,
+        "y": 3020,
+        "wires": [
+            [
+                "74b0671c6da66b17"
+            ],
+            [
+                "1ad6dd29f1a04598"
+            ]
+        ]
+    },
+    {
+        "id": "1ad6dd29f1a04598",
+        "type": "function",
+        "z": "a74f5effe243781e",
+        "name": "CreateUserExistsError",
+        "func": "// Store the error message indicating the existence of the username\n// in the payload property.\nmsg.payload = {\"error\" : \"The user with the username \\'\"+msg.updateData.username+\"\\' or email \\'\"+msg.updateData.email+\"\\' already exists!\"};\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1600,
+        "y": 3060,
+        "wires": [
+            [
+                "9427505c3f2beffe",
+                "787789f09adae126"
+            ]
+        ]
+    },
+    {
+        "id": "9427505c3f2beffe",
+        "type": "debug",
+        "z": "a74f5effe243781e",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1810,
+        "y": 3060,
+        "wires": []
+    },
+    {
+        "id": "787789f09adae126",
+        "type": "http response",
+        "z": "a74f5effe243781e",
+        "name": "",
+        "statusCode": "400",
+        "headers": {},
+        "x": 1800,
+        "y": 3100,
+        "wires": []
+    },
+    {
+        "id": "74b0671c6da66b17",
+        "type": "bcrypt",
+        "z": "a74f5effe243781e",
+        "name": "",
+        "action": "encrypt",
+        "field": "updateData.password",
+        "hash": "payload",
+        "target": "hash",
+        "assignment": "assign",
+        "match": "match",
+        "outputs": 1,
+        "rounds": 10,
+        "x": 1550,
+        "y": 3000,
+        "wires": [
+            [
+                "e8b374409be2140e"
+            ]
+        ]
+    },
+    {
+        "id": "e8b374409be2140e",
+        "type": "function",
+        "z": "a74f5effe243781e",
+        "name": "SetUpdateQueryParameters",
+        "func": "// Set the query parameters with the data to update.\nmsg.queryParameters = {\n    id : msg.updateData.id,\n    username : msg.updateData.username,\n    email : msg.updateData.email,\n    password : msg.hash\n};\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1740,
+        "y": 3000,
+        "wires": [
+            [
+                "979df20295e15ceb"
+            ]
+        ]
+    },
+    {
+        "id": "979df20295e15ceb",
+        "type": "postgresql",
+        "z": "a74f5effe243781e",
+        "name": "UpdateUser",
+        "query": "update users set username = $username, password = $password, email = $email\n  where id = $id;",
+        "postgreSQLConfig": "2f8cbd60eac83ae4",
+        "split": false,
+        "rowsPerMsg": 1,
+        "outputs": 1,
+        "x": 1950,
+        "y": 3000,
+        "wires": [
+            [
+                "2dfe276eb247dc2e"
+            ]
+        ]
+    },
+    {
+        "id": "2dfe276eb247dc2e",
+        "type": "function",
+        "z": "a74f5effe243781e",
+        "name": "CreateSuccessMessage",
+        "func": "// Create success message and send empty payload.\nmsg.successMessage = \"The user was successfully updated!\";\nmsg.payload = {};\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 2150,
+        "y": 3000,
+        "wires": [
+            [
+                "4040c84934cb3296",
+                "4d5a179864bffab7"
+            ]
+        ]
+    },
+    {
+        "id": "4040c84934cb3296",
+        "type": "debug",
+        "z": "a74f5effe243781e",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "successMessage",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 2400,
+        "y": 3000,
+        "wires": []
+    },
+    {
+        "id": "4d5a179864bffab7",
+        "type": "http response",
+        "z": "a74f5effe243781e",
+        "name": "",
+        "statusCode": "200",
+        "headers": {},
+        "x": 2360,
+        "y": 3040,
+        "wires": []
+    },
+    {
+        "id": "b6cbedc16ff3daa3",
+        "type": "http in",
+        "z": "a74f5effe243781e",
+        "name": "",
+        "url": "/api/users/:id",
+        "method": "delete",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 90,
+        "y": 3340,
+        "wires": [
+            [
+                "a697af962f3487d0"
+            ]
+        ]
+    },
+    {
+        "id": "a697af962f3487d0",
+        "type": "function",
+        "z": "a74f5effe243781e",
+        "name": "CreateQueryParameters",
+        "func": "// Store the delete data and set it as query parameters.\nmsg.deleteData = msg.req.params;\nmsg.queryParameters = msg.deleteData;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 330,
+        "y": 3340,
+        "wires": [
+            [
+                "383d180f5d6b5d33"
+            ]
+        ]
+    },
+    {
+        "id": "383d180f5d6b5d33",
+        "type": "postgresql",
+        "z": "a74f5effe243781e",
+        "name": "FindUserById",
+        "query": "select * from users where id = $id;",
+        "postgreSQLConfig": "2f8cbd60eac83ae4",
+        "split": false,
+        "rowsPerMsg": 1,
+        "outputs": 1,
+        "x": 540,
+        "y": 3340,
+        "wires": [
+            [
+                "1a6713698ab88f0c"
+            ]
+        ]
+    },
+    {
+        "id": "1a6713698ab88f0c",
+        "type": "switch",
+        "z": "a74f5effe243781e",
+        "name": "OneUserFound",
+        "property": "payload.length",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "1",
+                "vt": "num"
+            },
+            {
+                "t": "eq",
+                "v": "0",
+                "vt": "num"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 2,
+        "x": 720,
+        "y": 3340,
+        "wires": [
+            [
+                "96efaa30920ec0fe"
+            ],
+            [
+                "3e7ed00cf0294b45"
+            ]
+        ]
+    },
+    {
+        "id": "96efaa30920ec0fe",
+        "type": "function",
+        "z": "a74f5effe243781e",
+        "name": "StoreFoundUser",
+        "func": "// Store the user to delete in a separate property.\nmsg.userToDelete = msg.payload[0];\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 920,
+        "y": 3300,
+        "wires": [
+            [
+                "7e3ea740d86b6365"
+            ]
+        ]
+    },
+    {
+        "id": "3e7ed00cf0294b45",
+        "type": "function",
+        "z": "a74f5effe243781e",
+        "name": "CreateUserNotFoundError",
+        "func": "// Store the error message indicating the non-existence of the user\n// in the payload property.\nmsg.payload = {\"error\" : \"The user with the ID \\'\"+msg.deleteData.id+\"\\' could not be found!\"};\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 960,
+        "y": 3360,
+        "wires": [
+            [
+                "a2a551846cff759d",
+                "f18fa2bf1a727d11"
+            ]
+        ]
+    },
+    {
+        "id": "a2a551846cff759d",
+        "type": "debug",
+        "z": "a74f5effe243781e",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1190,
+        "y": 3360,
+        "wires": []
+    },
+    {
+        "id": "f18fa2bf1a727d11",
+        "type": "http response",
+        "z": "a74f5effe243781e",
+        "name": "",
+        "statusCode": "400",
+        "headers": {},
+        "x": 1180,
+        "y": 3400,
+        "wires": []
+    },
+    {
+        "id": "7e3ea740d86b6365",
+        "type": "postgresql",
+        "z": "a74f5effe243781e",
+        "name": "DeleteUser",
+        "query": "delete from users where id = $id;",
+        "postgreSQLConfig": "2f8cbd60eac83ae4",
+        "split": false,
+        "rowsPerMsg": 1,
+        "outputs": 1,
+        "x": 1090,
+        "y": 3300,
+        "wires": [
+            [
+                "2fe6bcf08d8fc3e1"
+            ]
+        ]
+    },
+    {
+        "id": "2fe6bcf08d8fc3e1",
+        "type": "function",
+        "z": "a74f5effe243781e",
+        "name": "CreateSuccessMessage",
+        "func": "// Create success message and send empty payload.\nmsg.successMessage = \"The user was successfully deleted!\";\nmsg.payload = {};\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1290,
+        "y": 3300,
+        "wires": [
+            [
+                "78d626f566cb6486",
+                "cd353725066513cc"
+            ]
+        ]
+    },
+    {
+        "id": "78d626f566cb6486",
+        "type": "debug",
+        "z": "a74f5effe243781e",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "successMessage",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1540,
+        "y": 3280,
+        "wires": []
+    },
+    {
+        "id": "cd353725066513cc",
+        "type": "http response",
+        "z": "a74f5effe243781e",
+        "name": "",
+        "statusCode": "200",
+        "headers": {},
+        "x": 1500,
+        "y": 3320,
+        "wires": []
+    },
+    {
+        "id": "17e27a630be6224e",
+        "type": "comment",
+        "z": "a74f5effe243781e",
+        "name": "Register",
+        "info": "",
+        "x": 100,
+        "y": 2020,
+        "wires": []
+    },
+    {
+        "id": "491c5022414fc04b",
+        "type": "comment",
+        "z": "a74f5effe243781e",
+        "name": "Login",
+        "info": "",
+        "x": 90,
+        "y": 2240,
+        "wires": []
+    },
+    {
+        "id": "b6cac91c82cb950d",
+        "type": "comment",
+        "z": "a74f5effe243781e",
+        "name": "GetIDBasedOnToken",
+        "info": "",
+        "x": 140,
+        "y": 2440,
+        "wires": []
+    },
+    {
+        "id": "6cc3744a8ea4dd98",
+        "type": "comment",
+        "z": "a74f5effe243781e",
+        "name": "GetUserBasedOnId",
+        "info": "",
+        "x": 130,
+        "y": 2660,
+        "wires": []
+    },
+    {
+        "id": "225c718ba1750efa",
+        "type": "comment",
+        "z": "a74f5effe243781e",
+        "name": "EditUserProfile",
+        "info": "",
+        "x": 100,
+        "y": 3000,
+        "wires": []
+    },
+    {
+        "id": "8b68d13725cd245b",
+        "type": "comment",
+        "z": "a74f5effe243781e",
+        "name": "DeleteUser",
+        "info": "",
+        "x": 80,
+        "y": 3280,
+        "wires": []
+    },
+    {
+        "id": "e27e5dd23ce52ee0",
+        "type": "http response",
+        "z": "a74f5effe243781e",
+        "name": "",
+        "statusCode": "400",
+        "headers": {},
+        "x": 800,
+        "y": 1940,
+        "wires": []
+    },
+    {
+        "id": "0fa645b9cea3b9e4",
+        "type": "comment",
+        "z": "a74f5effe243781e",
+        "name": "CatchErrorsFromDatabaseNodes",
+        "info": "",
+        "x": 230,
+        "y": 1880,
+        "wires": []
+    },
+    {
+        "id": "8adf14cbfdc075e6",
+        "type": "function",
+        "z": "a74f5effe243781e",
+        "name": "CreateDatabaseConnectionError",
+        "func": "// Store the error message connection error\n// in the payload property.\nvar error = msg.payload;\nmsg.payload = {\"error\" : \"\"+error+\"\"};\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 540,
+        "y": 1940,
+        "wires": [
+            [
+                "e27e5dd23ce52ee0"
+            ]
+        ]
+    },
+    {
+        "id": "65c21b73d427c240",
+        "type": "catch",
+        "z": "a74f5effe243781e",
+        "name": "",
+        "scope": [
+            "7e3ea740d86b6365",
+            "383d180f5d6b5d33",
+            "979df20295e15ceb",
+            "b71d22f875e6282e",
+            "6ac89d0dbca3c623",
+            "5aebcc8e4938d326",
+            "231f7ce0969b51ef",
+            "61e2f793ad3f5964",
+            "7c0623bd069acc75"
+        ],
+        "uncaught": false,
+        "x": 270,
+        "y": 1940,
+        "wires": [
+            [
+                "8adf14cbfdc075e6"
+            ]
+        ]
+    },
+    {
+        "id": "2f8cbd60eac83ae4",
+        "type": "postgreSQLConfig",
+        "name": "",
+        "host": "127.0.0.1",
+        "hostFieldType": "str",
+        "port": "5432",
+        "portFieldType": "num",
+        "database": "postgres",
+        "databaseFieldType": "str",
+        "ssl": "false",
+        "sslFieldType": "bool",
+        "applicationName": "",
+        "applicationNameType": "str",
+        "max": "10",
+        "maxFieldType": "num",
+        "idle": "1000",
+        "idleFieldType": "num",
+        "connectionTimeout": "10000",
+        "connectionTimeoutFieldType": "num",
+        "user": "admin",
+        "userFieldType": "str",
+        "password": "secret",
+        "passwordFieldType": "str"
+    }
+]
