@@ -15,3 +15,14 @@ Installation of Docker and Docker Desktop for your operating system.
    * Maintenance database: postgres
    * Username: admin
    * Password: secret
+5. Create a new table using the following code snippet:
+```
+      create table if not exists users
+      (
+        id serial primary key,
+        email text unique,
+        userName text unique,
+        passWord text,
+        creationDt timestamp
+      );
+```
