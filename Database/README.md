@@ -28,5 +28,5 @@ Installation of Docker and Docker Desktop for your operating system.
 ```
 
 Should you experience any troubles creating the server, this may be due to the pgadmin version set in the **docker-compose.yml** file.
-In order to fix this, change the version in ```image: dpage/pgadmin4:<version>```. 
+In order to fix this, change the version in ```image: dpage/pgadmin4:<version>``` to the latest one. 
 The latest version can be found [here](https://www.pgadmin.org/).
